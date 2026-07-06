@@ -1,0 +1,31 @@
+ingestion:
+  collapse_duplicates: true
+  train_frac: 0.70
+  val_frac: 0.15
+
+graph:
+  min_edge_count: 1
+  n_clusters: null  # auto-detect from connected components
+  spectral_n_init: 20
+  random_state: 42
+
+model:
+  architecture: "gru"  # gru | lstm
+  vocab_size: null  # set at runtime after tokenizer fit
+  embedding_dim: 128
+  hidden_dim: 256
+  n_layers: 2
+  dropout: 0.2
+  context_length: 5
+  lr: 0.001
+  weight_decay: 1e-5
+  batch_size: 64
+  max_epochs: 100
+  early_stop_patience: 5
+  gradient_clip_norm: 1.0
+  device: "auto"  # auto | cpu | mps | cuda
+
+optimization:
+  cost_fn: 10.0  # false negative cost (missing a task)
+  cost_fp: 1.0   # false positive cost (false alarm)
+  n_thresholds: 1000
