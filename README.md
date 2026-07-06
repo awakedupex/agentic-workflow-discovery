@@ -7,6 +7,8 @@
     <img src="https://img.shields.io/badge/tests-59%20passing-brightgreen" alt="59 tests passing">
     <img src="https://img.shields.io/badge/latency-%3C15ms-brightgreen" alt="Inference <15ms">
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
+    <img src="https://img.shields.io/github/actions/workflow/status/awakedupex/agentic-workflow-discovery/ci.yml?branch=main&label=CI" alt="CI">
+    <img src="https://img.shields.io/badge/docker-ready-blue?logo=docker" alt="Docker">
   </p>
 
   <p>
@@ -86,6 +88,8 @@ Temporal data leakage is the #1 failure mode in time-series ML. This pipeline pr
 | **Deep Learning** | PyTorch 2.x | GRU sequence model with MPS/CPU support |
 | **Optimisation** | NumPy/SciPy | Asymmetric cost sweep, ROC curve |
 | **Testing** | pytest | 59 tests incl. latency benchmarks and leakage detection |
+| **CI/CD** | GitHub Actions | Auto-lint + test on every push |
+| **Containerization** | Docker | Reproducible builds via docker-compose |
 
 ---
 
@@ -112,6 +116,8 @@ make bench       # latency benchmarks only
 
 ## 🚀 Getting Started
 
+### Local
+
 ```bash
 # Set up environment
 uv venv --python 3.12
@@ -137,6 +143,12 @@ print(orch.predict(events[:5]))
 "
 ```
 
+### Docker
+
+```bash
+docker compose up
+```
+
 ---
 
 ## 📁 Project Structure
@@ -151,6 +163,9 @@ src/agentic_workflow_discovery/
 
 scripts/
 ├── generate_mock_data.py   # Synthetic data generator (3 macro-tasks + noise)
+
+notebooks/
+└── demo.ipynb              # Walkthrough: generate → clean → cluster → train → predict
 ```
 
 ---
