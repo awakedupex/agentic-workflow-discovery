@@ -1,6 +1,6 @@
 <div align="center">
   <h1>🔄 Agentic Workflow Discovery Engine</h1>
-  <p><em>Discover macro-tasks from enterprise UI clickstreams and predict the next user action — with zero data leakage.</em></p>
+  <p><em>A production-grade pipeline that discovers macro-tasks from raw UI event streams and predicts the next user action — with zero data leakage and sub-15ms inference.</em></p>
 
   <p>
     <img src="https://img.shields.io/badge/python-3.11%2B-blue?logo=python" alt="Python 3.11+">
@@ -8,18 +8,43 @@
     <img src="https://img.shields.io/badge/latency-%3C15ms-brightgreen" alt="Inference <15ms">
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
   </p>
+
+  <p>
+    <strong>PyTorch</strong> ·
+    <strong>scikit-learn</strong> ·
+    <strong>NetworkX</strong> ·
+    <strong>Pydantic</strong>
+  </p>
 </div>
 
 ---
 
-## 🎯 What This Does
+## 📋 Overview
 
-A modular, production-grade pipeline that ingests messy UI event logs and:
+Enterprise desktop activity logs are noisy, redundant, and unstructured. This project builds an **automated pipeline** that ingests raw click/keystroke/focus event streams, cleans them, discovers hidden "macro-tasks" (invoicing, email, code review), and trains a real-time sequence model to predict the user's next action — enabling intelligent desktop automation.
 
-1. **Cleans** the noise — collapses consecutive duplicate states (25% reduction)
-2. **Discovers macro-tasks** — partitions UI states into task clusters via spectral graph analysis (NMI = 1.0 for disjoint tasks)
-3. **Predicts next actions** — a GRU neural network forecasts the next UI interaction with **82% top-3 accuracy** in **<15ms**
-4. **Tunes decisions** — finds the optimal automation threshold under asymmetric costs (missing a task costs 10× more than a false alarm)
+### What it does
+
+| Stage | Input | Output | Method |
+|---|---|---|---|
+| **Ingestion** | Messy event logs | Cleaned, chronologically split streams | Pydantic validation + UI loop collapse |
+| **Graph Clustering** | Event sequences | Partitioned macro-tasks | NetworkX + Spectral Clustering |
+| **Next-Action Prediction** | 5-event context windows | Top-3 next action predictions | PyTorch GRU |
+| **Decision Tuning** | Model confidence scores | Optimal automation threshold | Asymmetric cost optimisation |
+
+---
+
+## 🔬 Key Results
+
+| Metric | Value | How It's Verified |
+|---|---|---|
+| **Noise reduction** | ~25% | Consecutive duplicate state collapse |
+| **Task discovery accuracy** | NMI = 1.0 (perfect) | Spectral clustering on disjoint synthetic tasks |
+| **Cluster quality** | Silhouette ≥ 0.85 | sklearn `silhouette_score` on transition graph |
+| **Next-action accuracy** | ~82% top-3 | End-to-end integration test |
+| **Inference latency** | **<15ms avg, <20ms P99** | `test_latency_budget.py` (100 timed runs on M-series CPU) |
+| **Model overfitting sanity** | Loss < 0.05 on 5 samples | `test_overfit_micro_batch` |
+| **Data leakage** | **Zero violations** | 3-layer guard: chronological split + train-only tokenizer + timestamp assert in Dataset |
 
 ---
 
@@ -40,48 +65,77 @@ A modular, production-grade pipeline that ingests messy UI event logs and:
 └─────────────┘    └──────────────┘    └──────────────┘    └─────────────┘    └──────────────┘
 ```
 
-### Anti-Leakage Defense (3 Layers)
+### Anti-Leakage Architecture
 
-| Layer | Mechanism |
-|---|---|
-| **Split** | Strict chronological split by timestamp, not random |
-| **Tokenizer** | Vocabulary fit on training data only; unseen tokens → `[UNK]` |
-| **Dataset** | `__getitem__` asserts every input timestamp < label timestamp |
+Temporal data leakage is the #1 failure mode in time-series ML. This pipeline prevents it at three independent layers:
+
+1. **Chronological split** — train/val/test divided by timestamp quantiles, not randomly
+2. **Train-only tokenizer** — vocabulary built exclusively from training events; unseen production states map to `[UNK]`
+3. **Dataset assert** — every training sample verifies all input timestamps are strictly before the label timestamp
 
 ---
 
-## 🚀 Quick Start
+## 💻 Tech Stack
+
+| Category | Library | Purpose |
+|---|---|---|
+| **Language** | Python 3.11+ | Type-hinted throughout |
+| **Validation** | Pydantic v2 | Strict schema enforcement (`frozen=True`, `extra="forbid"`) |
+| **Graph** | NetworkX | Directed transition graph with weighted edges |
+| **Clustering** | scikit-learn | Spectral clustering on graph Laplacian |
+| **Deep Learning** | PyTorch 2.x | GRU sequence model with MPS/CPU support |
+| **Optimisation** | NumPy/SciPy | Asymmetric cost sweep, ROC curve |
+| **Testing** | pytest | 59 tests incl. latency benchmarks and leakage detection |
+
+---
+
+## 🧪 Test Suite
+
+**59 tests — all passing** — covering mathematical correctness, ML invariants, and real-world constraints.
+
+```
+tests/
+├── test_ingestion/     (14 tests)  — Pydantic validation, loop collapse, split boundaries
+├── test_graph/         (17 tests)  — NMI=1.0, silhouette, edge weights, reproducibility
+├── test_model/         (16 tests)  — Leakage guard, overfitting, 15ms latency budget
+├── test_optimization/  (10 tests)  — Cost ratios, threshold shift, ROC monotonicity
+└── test_pipeline/      ( 2 tests)  — End-to-end smoke test with synthetic data
+```
 
 ```bash
-# 1. Set up environment
-uv venv --python 3.12
-source .venv/bin/activate
-
-# 2. Install
-uv pip install -e ".[dev]"
-
-# 3. Generate synthetic data
-python scripts/generate_mock_data.py --n_sessions 500
-
-# 4. Run tests
 make test        # fast tests (43 tests, ~3s)
-make test-slow   # full suite including training (59 tests, ~15s)
+make test-slow   # full suite (59 tests, ~15s)
+make bench       # latency benchmarks only
 ```
 
 ---
 
-## 📊 Performance
+## 🚀 Getting Started
 
-| Metric | Value | Test |
-|---|---|---|
-| **NMI (disjoint tasks)** | 1.0 (perfect) | `test_disjoint_tasks_perfect_separation` |
-| **Silhouette score** | ≥ 0.85 | `test_silhouette_score_in_valid_range` |
-| **Top-3 next-action accuracy** | ~82% | Integration smoke test |
-| **Inference latency (avg)** | < 15ms | `test_inference_latency_below_15ms` |
-| **Inference latency (P99)** | < 20ms | `test_p99_latency_below_20ms` |
-| **Overfit capability** | Loss < 0.05 on 5 sequences | `test_overfit_micro_batch` |
-| **Temporal leakage** | 0 violations | `test_temporal_leakage.py` (4 tests) |
-| **UI noise reduction** | ~25% | Loop collapse removes consecutive duplicates |
+```bash
+# Set up environment
+uv venv --python 3.12
+source .venv/bin/activate
+
+# Install with dev dependencies
+uv pip install -e ".[dev]"
+
+# Generate 50,000+ synthetic UI events
+python scripts/generate_mock_data.py --n_sessions 500
+
+# Run the full pipeline
+python -c "
+from agentic_workflow_discovery.pipeline.orchestrator import Orchestrator
+from scripts.generate_mock_data import generate_dataset
+
+events, _ = generate_dataset(n_sessions=10, seed=42)
+orch = Orchestrator()
+orch.ingest(events)
+orch.build_graph()
+orch.train_model(max_epochs=20)
+print(orch.predict(events[:5]))
+"
+```
 
 ---
 
@@ -89,72 +143,32 @@ make test-slow   # full suite including training (59 tests, ~15s)
 
 ```
 src/agentic_workflow_discovery/
-├── ingestion/      # Pydantic schemas, UI loop collapse, chronological split
-├── graph/          # NetworkX transition graph, sklearn spectral clustering
-├── model/          # GRU/LSTM, PyTorch Dataset with leakage guard, trainer, predictor
-├── optimization/   # Asymmetric cost matrix, ROC threshold sweep, operating point
-└── pipeline/       # Orchestrator — wires all stages together
-
-tests/
-├── test_ingestion/     # 14 tests — cleaning edge cases, split boundary
-├── test_graph/         # 17 tests — NMI=1.0, silhouette, weight accumulation
-├── test_model/         # 16 tests — leakage guard, overfitting, latency budget
-├── test_optimization/  # 10 tests — cost ratios, threshold shift, ROC monotonicity
-└── test_pipeline/      # 2 tests — end-to-end smoke test
+├── ingestion/      # Schemas, cleaner, splitter, pipeline
+├── graph/          # Builder, cluster, metrics
+├── model/          # Tokenizer, dataset, GRU, trainer, predictor
+├── optimization/   # Cost, threshold, controller
+└── pipeline/       # Orchestrator (wires all stages)
 
 scripts/
-├── generate_mock_data.py  # Synthetic enterprise UI traces with 3 embedded macro-tasks
+├── generate_mock_data.py   # Synthetic data generator (3 macro-tasks + noise)
 ```
 
 ---
 
-## 🧪 Running the Full Test Suite
+## 🔑 Engineering Decisions
 
-```bash
-# All fast tests
-make test
-
-# Including slow (training) and benchmark (latency) tests
-make test-slow
-
-# Latency budget only
-make bench
-
-# Lint checks
-make lint
-
-# Type checks
-make typecheck
-```
-
----
-
-## 🔑 Key Design Decisions
-
-| Decision | Rationale |
+| Decision | Trade-off |
 |---|---|
-| **GRU over Transformer** | 5-token context — Transformer's self-attention has no advantage; GRU is 5× faster with ½ the parameters |
-| **Spectral clustering** | UI workflows are chains (A→B→C), not spheres. K-Means fails; graph Laplacian finds communities |
-| **Time-based split** | Random split leaks future context; chronological split simulates real deployment |
-| **C_fn=10, C_fp=1** | Missed automation = user disappointment; false alarm = minor annoyance. 10:1 is a sensible default |
-| **15ms latency budget** | Human perception threshold for "instantaneous" interaction is ~20ms; 15ms leaves headroom |
-
----
-
-## 📚 Interview Prep
-
-Each module file contains inline `# Design rationale` comments explaining *why* each choice was made. Key questions you can answer after studying this project:
-
-- *"How do you prevent data leakage in a time-series model?"*
-- *"Why spectral clustering over K-Means for UI sequence data?"*
-- *"When would you choose a GRU over a Transformer?"*
-- *"How do you set a decision threshold under asymmetric costs?"*
-- *"What makes this pipeline production-grade?"*
+| **GRU over Transformer** | Context window is 5 tokens — Transformer's self-attention offers no benefit at this length. GRU is faster, smaller, and equally accurate. Would switch to Transformer for >32-token contexts. |
+| **Spectral over K-Means** | UI workflows form chain-like DAGs (A→B→C), not spherical clusters. The graph Laplacian captures community structure where K-Means fails. |
+| **Time-based train/test split** | Random split would leak future task patterns into the training set. Chronological split simulates real-world deployment. |
+| **10:1 cost asymmetry** | False negatives (missed automations) cost 10× more than false alarms. The decision threshold is tuned to this ratio via expected-cost minimisation. |
+| **15ms latency budget** | Under 20ms is imperceptible to users. 15ms leaves headroom for tokenisation and post-processing. Verified by P99 benchmark. |
 
 ---
 
 <div align="center">
-  <sub>Built with Python, PyTorch, NetworkX, scikit-learn & PyTorch</sub>
+  <sub>Python · PyTorch · NetworkX · scikit-learn · Pydantic · pytest</sub>
   <br>
   <sub>MIT License</sub>
 </div>
