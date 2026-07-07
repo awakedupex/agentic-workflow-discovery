@@ -90,6 +90,7 @@ Temporal data leakage is the #1 failure mode in time-series ML. This pipeline pr
 | **Testing** | pytest | 59 tests incl. latency benchmarks and leakage detection |
 | **CI/CD** | GitHub Actions | Auto-lint + test on every push |
 | **Containerization** | Docker | Reproducible builds via docker-compose |
+| **API Serving** | FastAPI | HTTP endpoint for online prediction |
 
 ---
 
@@ -146,7 +147,8 @@ print(orch.predict(events[:5]))
 ### Docker
 
 ```bash
-docker compose up
+docker compose up                         # run all fast tests
+docker compose run app python serve.py    # start the prediction API
 ```
 
 ### Pipeline one-liner
@@ -154,6 +156,16 @@ docker compose up
 ```bash
 python scripts/run_pipeline.py           # full pipeline: generate → clean → cluster → train → predict
 python scripts/benchmark_inference.py    # measure inference latency (avg/P50/P95/P99)
+```
+
+### Serve model via API
+
+```bash
+pip install -e ".[serve]"
+python serve.py
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"events":[{"app_name":"Outlook","window_title":"Inbox","event_type":"focus_in"}]}'
 ```
 
 ---
@@ -175,6 +187,8 @@ scripts/
 
 notebooks/
 └── demo.ipynb              # Walkthrough: generate → clean → cluster → train → predict
+
+serve.py                    # FastAPI server for next-action prediction
 ```
 
 ---
