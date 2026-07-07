@@ -149,6 +149,13 @@ print(orch.predict(events[:5]))
 docker compose up
 ```
 
+### Pipeline one-liner
+
+```bash
+python scripts/run_pipeline.py           # full pipeline: generate → clean → cluster → train → predict
+python scripts/benchmark_inference.py    # measure inference latency (avg/P50/P95/P99)
+```
+
 ---
 
 ## 📁 Project Structure
@@ -162,7 +169,9 @@ src/agentic_workflow_discovery/
 └── pipeline/       # Orchestrator (wires all stages)
 
 scripts/
-├── generate_mock_data.py   # Synthetic data generator (3 macro-tasks + noise)
+├── generate_mock_data.py      # Synthetic data generator (3 macro-tasks + noise)
+├── run_pipeline.py            # Full pipeline CLI — one command
+└── benchmark_inference.py     # Latency benchmark (avg/P50/P95/P99)
 
 notebooks/
 └── demo.ipynb              # Walkthrough: generate → clean → cluster → train → predict
