@@ -205,8 +205,32 @@ serve.py                    # FastAPI server for next-action prediction
 
 ---
 
+## 📖 References
+
+This project builds on ideas from the following works:
+
+| Paper | Applied In |
+|---|---|
+| Cho et al., *"Learning Phrase Representations using RNN Encoder-Decoder for Statistical Machine Translation"* (2014) | GRU architecture for next-action prediction |
+| Ng, Jordan, Weiss, *"On Spectral Clustering: Analysis and an Algorithm"* (2002) | Normalized Laplacian + K-Means on eigenvectors for macro-task partitioning |
+| Fawcett, *"An Introduction to ROC Analysis"* (2006) | Threshold sweep and expected-cost minimisation under asymmetric misclassification costs |
+
+---
+
+## ⚠️ Failure Modes at Scale
+
+| Scenario | What Breaks | Mitigation |
+|---|---|---|
+| **100K+ unique states** | NetworkX stores nodes as Python dicts → memory exceeds 8 GB | Swap to `igraph` or `scipy.sparse.csr_matrix` for the transition graph |
+| **10K+ event context window** | GRU hidden state saturates; backprop gradients vanish | Replace GRU with Transformer using RoPE or relative position encodings |
+| **50+ tasks** | Spectral clustering O(n²·k) becomes expensive; silhouette may degrade | Use hierarchical clustering or HDBSCAN as a first pass before spectral refinement |
+| **Class imbalance shifts** | Threshold tuned on validation priors becomes suboptimal in production | Monitor positive rate drift; auto-retune threshold when shift exceeds 10% relative |
+| **Real-time streaming** | Batch pipeline stages block indefinitely | Implement sliding windows with a message queue (Kafka / Redis Streams) |
+
+---
+
 <div align="center">
-  <sub>Python · PyTorch · NetworkX · scikit-learn · Pydantic · pytest</sub>
+  <sub>Python · PyTorch · NetworkX · scikit-learn · Pydantic · pytest · FastAPI</sub>
   <br>
   <sub>MIT License</sub>
 </div>
